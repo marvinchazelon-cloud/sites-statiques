@@ -1,10 +1,11 @@
 {
   "sites": {
     "centre-affaires-pro": {
-      "host": "centre-affaires-pro.fr",
+      "host": "213.255.195.44",
       "port": 22,
       "user": "centr2692840",
-      "deploy_dir": "/home/htdocs"
+      "deploy_dir": "/home/htdocs",
+      "host_comment": "IP LWS temporaire en attendant la propagation DNS de centre-affaires-pro.fr (à remettre sur le domaine une fois DNS OK)"
     }
   }
 }
