@@ -55,18 +55,15 @@ jobs:
         id: cfg
         run: |
           echo "host=$(jq -r --arg s '${{ matrix.site }}' '.sites[$s].host' sites.json)" >> "$GITHUB_OUTPUT"
-          echo "port=$(jq -r --arg s '${{ matrix.site }}' '.sites[$s].port' sites.json)" >> "$GITHUB_OUTPUT"
           echo "user=$(jq -r --arg s '${{ matrix.site }}' '.sites[$s].user' sites.json)" >> "$GITHUB_OUTPUT"
           echo "dir=$(jq -r --arg s '${{ matrix.site }}' '.sites[$s].deploy_dir' sites.json)" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy ${{ matrix.site }}
-        uses: appleboy/scp-action@v0.1.7
+      - name: Deploy ${{ matrix.site }} (SFTP)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          host:     ${{ steps.cfg.outputs.host }}
-          port:     ${{ steps.cfg.outputs.port }}
+          server: sftp://${{ steps.cfg.outputs.host }}
           username: ${{ steps.cfg.outputs.user }}
-          key:      ${{ secrets.LWS_SSH_KEY }}
-          source:   "sites/${{ matrix.site }}/*"
-          target:   ${{ steps.cfg.outputs.dir }}
-          strip_components: 2
-          overwrite: true
+          password: ${{ secrets.LWS_SFTP_PASSWORD }}
+          local-dir: sites/${{ matrix.site }}/
+          server-dir: ${{ steps.cfg.outputs.dir }}/
+          dangerous-clean-slate: false
