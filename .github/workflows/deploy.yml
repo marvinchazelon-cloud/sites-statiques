@@ -1,0 +1,72 @@
+name: Deploy vitrines to LWS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      site:
+        description: "Site à déployer (vide = détection auto)"
+        required: false
+        default: ""
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+      count: ${{ steps.set.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: set
+        run: |
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          else
+            CHANGED=$(git ls-tree -r --name-only HEAD)
+          fi
+          MATRIX='{"include":[]}'
+          FORCE="${{ github.event.inputs.site }}"
+          for SITE in $(jq -r '.sites | keys[]' sites.json); do
+            if { [ -n "$FORCE" ] && [ "$FORCE" = "$SITE" ]; } || echo "$CHANGED" | grep -q "^sites/$SITE/"; then
+              MATRIX=$(echo "$MATRIX" | jq --arg s "$SITE" '.include += [{"site":$s}]')
+            fi
+          done
+          echo "count=$(echo "$MATRIX" | jq '.include | length')" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(echo "$MATRIX" | jq -c '{include:.include}')" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: detect
+    if: needs.detect.outputs.count != '0'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read site config
+        id: cfg
+        run: |
+          echo "host=$(jq -r --arg s '${{ matrix.site }}' '.sites[$s].host' sites.json)" >> "$GITHUB_OUTPUT"
+          echo "port=$(jq -r --arg s '${{ matrix.site }}' '.sites[$s].port' sites.json)" >> "$GITHUB_OUTPUT"
+          echo "user=$(jq -r --arg s '${{ matrix.site }}' '.sites[$s].user' sites.json)" >> "$GITHUB_OUTPUT"
+          echo "dir=$(jq -r --arg s '${{ matrix.site }}' '.sites[$s].deploy_dir' sites.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy ${{ matrix.site }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host:     ${{ steps.cfg.outputs.host }}
+          port:     ${{ steps.cfg.outputs.port }}
+          username: ${{ steps.cfg.outputs.user }}
+          key:      ${{ secrets.LWS_SSH_KEY }}
+          source:   "sites/${{ matrix.site }}/*"
+          target:   ${{ steps.cfg.outputs.dir }}
+          strip_components: 2
+          overwrite: true

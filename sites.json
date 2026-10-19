@@ -1,0 +1,10 @@
+{
+  "sites": {
+    "centre-affaires-pro": {
+      "host": "centre-affaires-pro.fr",
+      "port": 22,
+      "user": "centr2692840",
+      "deploy_dir": "/home/htdocs"
+    }
+  }
+}
