@@ -5,7 +5,7 @@
       "port": 22,
       "user": "centr2692840",
       "deploy_dir": "/home/htdocs",
-      "host_comment": "IP LWS temporaire en attendant la propagation DNS de centre-affaires-pro.fr (à remettre sur le domaine une fois DNS OK)"
+      "host_comment": "IP directe LWS (choix durable : plus fiable que le domaine, pas de dépendance DNS pour le déploiement)"
     }
   }
 }
